@@ -13,7 +13,7 @@ function runSync() {
       CONFIG.SYNC_TOKEN_PRIMARY,
       true
     );
-  }, 'Primary → Secondary');
+  }, CONFIG.PRIMARY_CALENDAR_ID + ' → ' + CONFIG.SECONDARY_CALENDAR_ID);
 
   // Secondary → Primary
   safeExecute(function() {
@@ -24,7 +24,7 @@ function runSync() {
       CONFIG.SYNC_TOKEN_SECONDARY,
       false
     );
-  }, 'Secondary → Primary');
+  }, CONFIG.SECONDARY_CALENDAR_ID + ' → ' + CONFIG.PRIMARY_CALENDAR_ID);
 
   logInfo('Bidirectional sync complete');
 }
