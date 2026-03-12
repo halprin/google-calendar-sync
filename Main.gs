@@ -30,15 +30,15 @@ function runSync() {
 }
 
 /**
- * Creates a 5-minute time-driven trigger for runSync. Removes existing triggers first.
+ * Creates a time-driven trigger for runSync. Removes existing triggers first.
  */
 function setupTrigger() {
   removeTrigger();
   ScriptApp.newTrigger('runSync')
     .timeBased()
-    .everyMinutes(15)
+    .everyMinutes(CONFIG.TRIGGER_MINUTES)
     .create();
-  logInfo('Created 15-minute trigger for runSync');
+  logInfo('Created ' + CONFIG.TRIGGER_MINUTES + '-minute trigger for runSync');
 }
 
 /**
@@ -70,7 +70,7 @@ function resetSyncTokens() {
  */
 function initialSetup() {
   setupTrigger();
-  logInfo('Initial setup complete. Sync will run every 15 minutes.');
+  logInfo('Initial setup complete. Sync will run every ' + CONFIG.TRIGGER_MINUTES + ' minutes.');
   logInfo('Primary calendar: ' + CONFIG.PRIMARY_CALENDAR_ID);
   logInfo('Secondary calendar: ' + CONFIG.SECONDARY_CALENDAR_ID);
 }

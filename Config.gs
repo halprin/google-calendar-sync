@@ -17,6 +17,9 @@ var CONFIG = {
   // How many days ahead to sync on a full sync (limits expanded recurring events)
   FULL_SYNC_DAYS: 30,
 
+  // How often the sync trigger runs, in minutes (valid values: 1, 5, 10, 15, or 30)
+  TRIGGER_MINUTES: 15,
+
   // PropertiesService keys for sync tokens
   SYNC_TOKEN_PRIMARY: 'syncToken_primary',
   SYNC_TOKEN_SECONDARY: 'syncToken_secondary'
