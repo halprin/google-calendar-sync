@@ -20,6 +20,13 @@ Copy all of the `.gs` files from this repository into the project.
 
 In `Config.gs`, set `PRIMARY_CALENDAR_ID` and `SECONDARY_CALENDAR_ID` to your actual Google Calendar IDs (generally they are your email addresses). Optionally, the other fields can be updated.
 
+#### Choosing Primary vs Secondary
+
+The primary calendar does _not_ need to be the account that owns the Apps Script project. Choose based on how much detail you want each calendar to receive.
+
+- The primary calendar receives most details from secondary calendar events.
+- The secondary calendar receives obfuscated events: just the `STRIPPED_TITLE` value in [`Config.gs`](Config.gs) (defaults to "Sync: Meeting") as the event name, plus your RSVP status (accepted, maybe, or needs action).
+
 ### 5. Share Calendar Access
 
 Share the other calendar with the Google account that owns the Apps Script project. In Google Calendar, go to the other calendar's settings, find the "Share with" section, add the Apps Script account's email, and grant "Make changes to events" permission.
