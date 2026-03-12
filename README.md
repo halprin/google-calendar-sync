@@ -16,7 +16,11 @@ Copy all of the `.gs` files from this repository into the project.
 
 In `Config.gs`, set `PRIMARY_CALENDAR_ID` and `SECONDARY_CALENDAR_ID` to your actual Google Calendar IDs (generally they are your email addresses). Optionally, the other fields can be updated.
 
-### 4. Initial Setup
+### 4. Share Calendar Access
+
+Share the other calendar with the Google account that owns the Apps Script project. In Google Calendar, go to the other calendar's settings, find the "Share with" section, add the Apps Script account's email, and grant "Make changes to events" permission.
+
+### 5. Initial Setup
 
 Run `initialSetup` from the Apps Script code editor. This will prompt you to authorize the necessary calendar permissions.
 
