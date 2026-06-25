@@ -7,6 +7,14 @@ var CONFIG = {
   PREFIX_FROM_PRIMARY: 'Sync: ',
   PREFIX_FROM_SECONDARY: 'Sync: ',
 
+  // Color IDs for synced events (1=Lavender, 2=Sage, 3=Grape, 4=Flamingo, 5=Banana,
+  // 6=Tangerine, 7=Peacock, 8=Graphite, 9=Blueberry, 10=Basil, 11=Tomato)
+  // Set USE_DEFAULT_COLOR to true to skip color override and use the calendar's default
+  USE_DEFAULT_COLOR_FROM_PRIMARY: false,
+  SYNC_COLOR_FROM_PRIMARY: '7',
+  USE_DEFAULT_COLOR_FROM_SECONDARY: false,
+  SYNC_COLOR_FROM_SECONDARY: '9',
+
   // Generic title used for primary calendar events synced to secondary calendar (details stripped)
   STRIPPED_TITLE: 'Sync: Meeting',
 

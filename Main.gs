@@ -9,9 +9,13 @@ function runSync() {
     syncDirection(
       CONFIG.PRIMARY_CALENDAR_ID,
       CONFIG.SECONDARY_CALENDAR_ID,
-      CONFIG.PREFIX_FROM_PRIMARY,
       CONFIG.SYNC_TOKEN_PRIMARY,
-      true
+      {
+        prefix: CONFIG.PREFIX_FROM_PRIMARY,
+        stripDetails: true,
+        useDefaultColor: CONFIG.USE_DEFAULT_COLOR_FROM_PRIMARY,
+        colorId: CONFIG.SYNC_COLOR_FROM_PRIMARY
+      }
     );
   }, CONFIG.PRIMARY_CALENDAR_ID + ' → ' + CONFIG.SECONDARY_CALENDAR_ID);
 
@@ -20,9 +24,13 @@ function runSync() {
     syncDirection(
       CONFIG.SECONDARY_CALENDAR_ID,
       CONFIG.PRIMARY_CALENDAR_ID,
-      CONFIG.PREFIX_FROM_SECONDARY,
       CONFIG.SYNC_TOKEN_SECONDARY,
-      false
+      {
+        prefix: CONFIG.PREFIX_FROM_SECONDARY,
+        stripDetails: false,
+        useDefaultColor: CONFIG.USE_DEFAULT_COLOR_FROM_SECONDARY,
+        colorId: CONFIG.SYNC_COLOR_FROM_SECONDARY
+      }
     );
   }, CONFIG.SECONDARY_CALENDAR_ID + ' → ' + CONFIG.PRIMARY_CALENDAR_ID);
 

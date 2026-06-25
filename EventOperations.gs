@@ -1,50 +1,35 @@
 /**
  * Creates or updates a synced copy of the source event in the target calendar.
  */
-function createOrUpdateSyncedCopy(sourceEvent, sourceCalendarId, targetCalendarId, prefix, stripDetails) {
-  var existingCopy = findSyncedCopy(sourceEvent.id, sourceCalendarId, targetCalendarId);
-  var resource = buildSyncedEventResource(sourceEvent, sourceCalendarId, prefix, stripDetails);
+function createOrUpdateSyncedCopy(sourceEvent, sourceCalendarId, targetCalendarId, options, syncedCopyMap) {
+  var existingCopy = findSyncedCopy(sourceEvent.id, syncedCopyMap);
+  var resource = buildSyncedEventResource(sourceEvent, sourceCalendarId, options);
+  var label = 'source:' + sourceEvent.id + ' summary:' + (sourceEvent.summary || '(No title)');
 
   if (existingCopy) {
-    Calendar.Events.update(resource, targetCalendarId, existingCopy.id, {
-      conferenceDataVersion: 1
-    });
-    logInfo('Updated synced copy: ' + resource.summary);
+    logInfo((options.dryRun ? '[DRY RUN] Would update: ' : 'Updated: ') + label);
+    if (!options.dryRun) Calendar.Events.update(resource, targetCalendarId, existingCopy.id, { conferenceDataVersion: 1 });
   } else {
-    Calendar.Events.insert(resource, targetCalendarId, {
-      conferenceDataVersion: 1
-    });
-    logInfo('Created synced copy: ' + resource.summary);
+    logInfo((options.dryRun ? '[DRY RUN] Would insert: ' : 'Created: ') + label);
+    if (!options.dryRun) Calendar.Events.insert(resource, targetCalendarId, { conferenceDataVersion: 1 });
   }
 }
 
 /**
  * Finds an existing synced copy by looking for matching extended properties.
  */
-function findSyncedCopy(sourceEventId, sourceCalendarId, targetCalendarId) {
-  var response = Calendar.Events.list(targetCalendarId, {
-    privateExtendedProperty: [
-      CONFIG.EXT_PROP_SOURCE_CALENDAR_ID + '=' + sourceCalendarId,
-      CONFIG.EXT_PROP_SOURCE_EVENT_ID + '=' + sourceEventId
-    ],
-    showDeleted: false,
-    maxResults: 1
-  });
-
-  if (response.items && response.items.length > 0) {
-    return response.items[0];
-  }
-  return null;
+function findSyncedCopy(sourceEventId, syncedCopyMap) {
+  return syncedCopyMap[sourceEventId] || null;
 }
 
 /**
  * Builds the event resource object for the synced copy.
  */
-function buildSyncedEventResource(sourceEvent, sourceCalendarId, prefix, stripDetails) {
+function buildSyncedEventResource(sourceEvent, sourceCalendarId, options) {
   var resource = {
-    summary: stripDetails
+    summary: options.stripDetails
       ? CONFIG.STRIPPED_TITLE
-      : prefix + (sourceEvent.summary || '(No title)'),
+      : options.prefix + (sourceEvent.summary || '(No title)'),
     start: sourceEvent.start,
     end: sourceEvent.end,
     extendedProperties: {
@@ -59,9 +44,13 @@ function buildSyncedEventResource(sourceEvent, sourceCalendarId, prefix, stripDe
   resource.extendedProperties.private[CONFIG.EXT_PROP_SOURCE_CALENDAR_ID] = sourceCalendarId;
   resource.extendedProperties.private[CONFIG.EXT_PROP_SOURCE_EVENT_ID] = sourceEvent.id;
 
+  if (!options.useDefaultColor) {
+    resource.colorId = options.colorId;
+  }
+
   var rsvpStatus = getRsvpStatus_(sourceEvent, sourceCalendarId);
 
-  if (stripDetails) {
+  if (options.stripDetails) {
     if (rsvpStatus) {
       resource.description = rsvpStatus;
     }
@@ -83,6 +72,7 @@ function buildSyncedEventResource(sourceEvent, sourceCalendarId, prefix, stripDe
     }
   }
 
+
   if (sourceEvent.transparency) {
     resource.transparency = sourceEvent.transparency;
   }
@@ -93,10 +83,9 @@ function buildSyncedEventResource(sourceEvent, sourceCalendarId, prefix, stripDe
 /**
  * Finds and deletes the synced copy of a cancelled/declined event.
  */
-function handleDeletion(sourceEvent, sourceCalendarId, targetCalendarId) {
+function handleDeletion(sourceEvent, sourceCalendarId, targetCalendarId, syncedCopyMap) {
   var sourceEventId = sourceEvent.id;
-  // For cancelled events, the id may have @google.com suffix stripped; use recurringEventId + originalStartTime if available
-  var existingCopy = findSyncedCopy(sourceEventId, sourceCalendarId, targetCalendarId);
+  var existingCopy = findSyncedCopy(sourceEventId, syncedCopyMap);
 
   if (existingCopy) {
     Calendar.Events.remove(targetCalendarId, existingCopy.id);
