@@ -1,32 +1,52 @@
 /**
  * Trigger entry point. Syncs events bidirectionally between primary and secondary calendars.
+ *
+ * The whole run is guarded by a script lock. Without one, a slow execution
+ * could still be running when the next 15-minute trigger fired; both would
+ * then see the same missing copy and both would insert it. That feedback loop
+ * (more duplicates -> slower runs -> more overlap -> more duplicates) is how a
+ * single mismatched event id turned into hundreds of copies.
  */
 function runSync() {
-  logInfo('Starting bidirectional sync');
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(0)) {
+    logInfo('Another sync run is already in progress - exiting');
+    return;
+  }
 
-  // Primary → Secondary
-  safeExecute(function() {
-    syncDirection(
-      CONFIG.PRIMARY_CALENDAR_ID,
-      CONFIG.SECONDARY_CALENDAR_ID,
-      CONFIG.PREFIX_FROM_PRIMARY,
-      CONFIG.SYNC_TOKEN_PRIMARY,
-      true
-    );
-  }, CONFIG.PRIMARY_CALENDAR_ID + ' → ' + CONFIG.SECONDARY_CALENDAR_ID);
+  try {
+    resetRunBudget();
+    logInfo('Starting bidirectional sync');
+    if (CONFIG.RECONCILE_DRY_RUN) {
+      logInfo('RECONCILE_DRY_RUN is true - deletions will be logged but NOT applied');
+    }
 
-  // Secondary → Primary
-  safeExecute(function() {
-    syncDirection(
-      CONFIG.SECONDARY_CALENDAR_ID,
-      CONFIG.PRIMARY_CALENDAR_ID,
-      CONFIG.PREFIX_FROM_SECONDARY,
-      CONFIG.SYNC_TOKEN_SECONDARY,
-      false
-    );
-  }, CONFIG.SECONDARY_CALENDAR_ID + ' → ' + CONFIG.PRIMARY_CALENDAR_ID);
+    // Primary → Secondary (details stripped)
+    safeExecute(function() {
+      syncDirection(
+        CONFIG.PRIMARY_CALENDAR_ID,
+        CONFIG.SECONDARY_CALENDAR_ID,
+        CONFIG.PREFIX_FROM_PRIMARY,
+        true
+      );
+    }, CONFIG.PRIMARY_CALENDAR_ID + ' → ' + CONFIG.SECONDARY_CALENDAR_ID);
 
-  logInfo('Bidirectional sync complete');
+    // Secondary → Primary (details preserved)
+    safeExecute(function() {
+      syncDirection(
+        CONFIG.SECONDARY_CALENDAR_ID,
+        CONFIG.PRIMARY_CALENDAR_ID,
+        CONFIG.PREFIX_FROM_SECONDARY,
+        false
+      );
+    }, CONFIG.SECONDARY_CALENDAR_ID + ' → ' + CONFIG.PRIMARY_CALENDAR_ID);
+
+    var verb = CONFIG.RECONCILE_DRY_RUN ? 'would have deleted' : 'deleted';
+    logInfo('Bidirectional sync complete in ' + elapsedSeconds().toFixed(1) + 's; ' +
+      verb + ' ' + getDeleteCount() + ' copy/copies');
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**
@@ -55,13 +75,15 @@ function removeTrigger() {
 }
 
 /**
- * Clears sync tokens to force a full re-sync on the next run.
+ * One-time cleanup of sync tokens left behind by older versions of this
+ * script. Tokens are no longer used at all - the sliding 30-day window is
+ * re-listed on every run, and the per-event dirty check keeps that cheap.
  */
-function resetSyncTokens() {
+function clearLegacySyncTokens() {
   var props = PropertiesService.getScriptProperties();
-  props.deleteProperty(CONFIG.SYNC_TOKEN_PRIMARY);
-  props.deleteProperty(CONFIG.SYNC_TOKEN_SECONDARY);
-  logInfo('Sync tokens cleared - next run will do a full sync');
+  props.deleteProperty('syncToken_primary');
+  props.deleteProperty('syncToken_secondary');
+  logInfo('Cleared legacy sync token properties (no longer used)');
 }
 
 /**
@@ -70,7 +92,9 @@ function resetSyncTokens() {
  */
 function initialSetup() {
   setupTrigger();
+  clearLegacySyncTokens();
   logInfo('Initial setup complete. Sync will run every ' + CONFIG.TRIGGER_MINUTES + ' minutes.');
   logInfo('Primary calendar: ' + CONFIG.PRIMARY_CALENDAR_ID);
   logInfo('Secondary calendar: ' + CONFIG.SECONDARY_CALENDAR_ID);
+  logInfo('RECONCILE_DRY_RUN: ' + CONFIG.RECONCILE_DRY_RUN);
 }
